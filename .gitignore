@@ -19,6 +19,7 @@ htmlcov/
 results/checkpoints/
 *.mp4
 *.gif
+!docs/assets/*.gif
 scratch/
 
 # IDE

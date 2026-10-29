@@ -8,6 +8,12 @@
 
 Nayak combines a hand-crafted **Mamdani Fuzzy Inference System (FIS)** with **NSGA-II multi-objective genetic evolution**, automatically optimizing membership function shapes and rule weights within a custom, high-speed microscopic traffic simulator.
 
+<p align="center">
+  <img src="docs/assets/demo_compare.gif" alt="NAYAK Split-Screen Compare Mode: FixedTime vs Nayak-Balanced" width="850"/>
+  <br/>
+  <em><b>Live Split-Screen Compare Mode:</b> FixedTime (Left: severe queue backlog in tidal flow) vs. Nayak-Balanced (Right: adaptive queue clearance & ambulance priority) driven by identical stochastic arrival streams.</em>
+</p>
+
 ---
 
 ## Key Features
