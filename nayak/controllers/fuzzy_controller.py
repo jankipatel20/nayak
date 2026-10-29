@@ -125,3 +125,32 @@ class HandDesignedFuzzyController(FuzzySignalController):
             consult_interval=consult_interval,
             extension_threshold=extension_threshold,
         )
+
+
+class EvolvedFuzzyController(FuzzySignalController):
+    """Fuzzy signal controller parameterized by an evolved genome."""
+
+    def __init__(
+        self,
+        genome: Sequence[float],
+        name: str = "EvolvedFuzzy",
+        min_green: int = 8,
+        max_green: int = 60,
+        consult_interval: int = 4,
+        extension_threshold: float = 2.0,
+    ) -> None:
+        from nayak.evolve.genome import decode_genome
+
+        self.genome = list(genome)
+        inputs, output, rules = decode_genome(self.genome)
+        fis = MamdaniFIS(input_variables=inputs, output_variable=output, rules=rules, default_output=0.0)
+
+        super().__init__(
+            fis=fis,
+            name=name,
+            min_green=min_green,
+            max_green=max_green,
+            consult_interval=consult_interval,
+            extension_threshold=extension_threshold,
+        )
+
