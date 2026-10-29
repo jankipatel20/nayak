@@ -21,3 +21,8 @@ Note: Results show RELATIVE improvement under a simplified microscopic simulator
 | **Normal Scenario V/C** | Target $\approx 0.60 - 0.70$ V/C ratio | Represents stable daytime urban traffic operating below breakdown capacity. |
 | **Rush Hour Scenario V/C** | Target $\approx 0.90 - 0.95$ V/C with $1.5:1$ tidal flow | Represents heavy peak-period commuter traffic with directional shift (NS first half, EW second half). |
 | **Two-Wheeler Heavy Scenario** | Target $\approx 0.65 - 0.72$ V/C with 60% 2-wheelers | Captures high vehicle density with smaller spatial footprint typical of tier-2 Indian cities. |
+| **Fuzzy Decision Interval** | Consulted at $t_{\text{green}} \ge 8\text{ s}$ and every 4 s | Balances controller responsiveness with preventing excessive switching and actuation churn. |
+| **Extension Threshold** | Switch if $\text{extension} < 2.0\text{ s}$ | Extensions under 2 s are shorter than transition lost time (4 s) and are economically unprofitable to hold. |
+| **LongestQueue Margin** | Actuate switch when $q_{\text{red}} > q_{\text{green}} + 2.0\text{ PCU}$ | Hysteresis band prevents rapid chattering oscillation between nearly balanced queues. |
+| **Defuzzification Resolution** | Discretized universe $N = 151$ points over $[0, 15]\text{ s}$ | Yields $0.10\text{ s}$ numerical centroid precision while completing inference in $<0.05\text{ ms}$. |
+| **Pruned Rule Threshold** | Weight $< 0.10$ | Identifies rules rendered inert by genetic algorithm evolution during explainability analysis. |
