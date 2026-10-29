@@ -1,0 +1,27 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+
+# Testing & linting
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Evolution checkpoints & transient data (section 12)
+results/checkpoints/
+*.mp4
+*.gif
+scratch/
+
+# IDE
+.idea/
+.vscode/
+*.swp
