@@ -61,9 +61,9 @@ This document provides plain-language explanations of the theoretical foundation
 ### D. Representative Pareto Policy Archetypes
 From the 16 Pareto-optimal solutions discovered, four specialized policies were extracted:
 * **Nayak-Fast**: $\arg\min f_1$ — Achieves lowest vehicle delay ($29.74\text{ s}$ in rush hour, $-79.1\%$ vs FixedTime).
-* **Nayak-Fair**: $\arg\min f_2$ — Suppresses tail wait times to ensure fairness across heavy and light directions.
-* **Nayak-Rescue**: $\arg\min f_3$ — Aggressively prioritizes ambulances, clearing emergency vehicles in $1.72\text{ s}$.
-* **Nayak-Balanced (Knee Point)**: Minimizes normalized Euclidean distance to the ideal origin $(0, 0, 0)$ across all 3 objectives.
+* **Nayak-Fair**: $\arg\min f_2$ — Suppresses tail wait times to ensure fairness across directions ($30.26\text{ s}$ in rush hour, $-78.7\%$).
+* **Nayak-Rescue**: $\arg\min f_3$ — Emergency-priority specialist from the training Pareto front ($f_3 = 1.72\text{ s}$ in evolution; achieves lowest fuzzy emergency delay of $9.27\text{ s}$ in normal test traffic, a $38.5\%$ cut).
+* **Nayak-Balanced (Knee Point)**: Minimizes normalized Euclidean distance to the ideal origin $(0, 0, 0)$ across all 3 objectives ($30.04\text{ s}$ in rush hour, $-78.9\%$).
 
 ---
 
@@ -72,8 +72,10 @@ From the 16 Pareto-optimal solutions discovered, four specialized policies were 
 ### Q1: Why use Passenger Car Units (PCU) instead of raw vehicle counts?
 > **Answer:** In mixed Indian traffic, a transit bus occupies 8–10 times the physical road space of a two-wheeler ($2.50\text{ PCU}$ vs $0.30\text{ PCU}$) and accelerates much slower. Counting raw vehicles treats a bus and a scooter identically. Using PCU ensures that the controller allocates green extensions based on physical road space and clearance headway, preventing queues containing heavy vehicles from being prematurely truncated.
 
-### Q2: Why did LongestQueueFirst perform so poorly in rush hour?
-> **Answer:** LongestQueueFirst is an actuated threshold controller. Under high-density mixed traffic with tidal flow, minor queue fluctuations cause it to switch phases prematurely. Because every phase switch incurs $4\text{ s}$ of lost clearance time ($3\text{ s}$ yellow $+ 1\text{ s}$ all-red) plus $2\text{ s}$ of startup lost time, frequent switching severely degrades effective capacity, resulting in catastrophic queue accumulation and chattering.
+### Q2: Why did LongestQueueFirst perform so poorly in rush hour, and why is its ambulance delay in the table low (6.24 s)?
+> **Answer:** LongestQueueFirst is an actuated threshold controller. Under high-density mixed traffic with tidal flow, minor queue fluctuations cause it to switch phases prematurely. Because every phase switch incurs $4\text{ s}$ of lost clearance time ($3\text{ s}$ yellow $+ 1\text{ s}$ all-red) plus $2\text{ s}$ of startup lost time, frequent switching severely degrades effective capacity, resulting in catastrophic queue accumulation and chattering ($623.23\text{ s}$ wait, $>10$ minutes).
+>
+> The apparent $6.24\text{ s}$ ambulance delay is a **deceptive actuation artifact**: LQF has zero emergency logic. Because the signals chatter back and forth frantically every few seconds, random ambulances filtering to the front happen to catch a quick phase change. However, this occurs while the entire intersection suffers catastrophic gridlock and throughput drops by 1000 vehicles.
 
 ### Q3: How does the controller ensure explainability?
 > **Answer:** Unlike deep reinforcement learning policies whose decisions are hidden inside millions of neural weights, Nayak is fully transparent. The controller uses 18 hand-crafted linguistic rules (e.g., `IF q_green is LOW AND q_red is HIGH THEN extension is ZERO`). The evolved rule weights and membership breakpoints can be inspected directly in human-readable markdown ([results/rule_report.md](../results/rule_report.md)). Rules with weight $< 0.10$ are explicitly identified as pruned.
@@ -84,5 +86,10 @@ From the 16 Pareto-optimal solutions discovered, four specialized policies were 
 ### Q5: What statistical test was used to validate superiority, and why?
 > **Answer:** We used the paired two-sided **Wilcoxon signed-rank test** with **Holm-Bonferroni correction**. We chose Wilcoxon because traffic wait time distributions are skewed with heavy tails (non-Gaussian), making standard Student's t-tests invalid. The paired design compares controllers on the exact same arrival stream seed, controlling for stochastic arrival variance. Holm's correction controls the family-wise error rate across multiple comparisons.
 
-### Q6: How does the ambulance priority model work?
-> **Answer:** Ambulances in Indian traffic filter through standing queues using emergency shoulders and lane splitting. In our simulator, arriving ambulances filter to the front of their approach queue (behind any earlier ambulances). The fuzzy rule base includes priority rules (`IF ambulance_red is 1 THEN extension is ZERO` and `IF ambulance_green is 1 THEN extension is LONG`). Our ablation study proved that this priority drops ambulance delay by $89\%$ ($1.72\text{ s}$ vs $16.3\text{ s}$) at a cost of only $+0.8\text{ s}$ in general traffic delay.
+### Q6: How does the ambulance priority model work, and what is the trade-off?
+> **Answer:** Ambulances in Indian traffic filter through standing queues using emergency shoulders and lane splitting. In our simulator, arriving ambulances filter to the front of their approach queue (behind any earlier ambulances). The fuzzy rule base includes priority rules (`IF ambulance_red is 1 THEN extension is ZERO` and `IF ambulance_green is 1 THEN extension is LONG`).
+>
+> **Test Results & Trade-Offs:**
+> 1. **Off-Peak Traffic**: In normal and two-wheeler traffic, Nayak cuts ambulance delay by **$30\%\text{ to }38\%$** ($9.27\text{ s}$ vs $15.08\text{ s}$ for FixedTime in normal traffic).
+> 2. **Saturated Rush Hour**: The multi-objective optimization reveals an authentic Pareto trade-off. To eliminate massive gridlock and slash general vehicle wait from $142.25\text{ s}$ to $29.74\text{ s}$ (a $79.1\%$ cut saving over $112\text{ s}$ per vehicle), green extensions must hold to discharge dense arterial platoons. Consequently, cross-street ambulances experience a modest trade-off of $\approx +1.2\text{ s}$ ($16.3\text{ s}$ vs $15.1\text{ s}$ for FixedTime).
+> 3. **The $1.72\text{ s}$ Figure**: Represents the single-individual Pareto training optimum ($f_3$) discovered by `Nayak-Rescue` during NSGA-II evolution on training seeds, prior to testing on unseen 20-seed stochastic distributions.

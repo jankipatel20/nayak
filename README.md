@@ -27,9 +27,11 @@ Nayak combines a hand-crafted **Mamdani Fuzzy Inference System (FIS)** with **NS
      - Ambulance: **1.00 PCU**
    - Saturation discharge incorporates fractional capacity budgets, accurately capturing how buses impede clearance while two-wheelers filter and clear rapidly.
 
-2. **Life-Saving Emergency Ambulance Priority**:
-   - Ambulances dynamically filter forward on red queues.
-   - Evolution optimizes emergency priority rules, reducing ambulance delays by **up to 89%** with negligible impact on general traffic.
+2. **Life-Saving Emergency Ambulance Priority & Pareto Trade-offs**:
+   - Ambulances dynamically filter forward on red queues, reflecting real-world filtering behavior.
+   - The fuzzy rule base contains explicit emergency rules that detect arriving ambulances and preempt green phases.
+   - In off-peak scenarios (`normal` and `two_wheeler_heavy`), evolved emergency priority reduces ambulance delays by **30% to 38%** (e.g., $9.27\text{ s}$ vs $15.08\text{ s}$ for FixedTime).
+   - In extreme tidal saturation (`rush_hour`), the multi-objective Pareto front surfaces an authentic trade-off: `Nayak-Fast` and `Nayak-Balanced` slash general vehicle wait times by **~79%** ($29.7\text{ s}$ vs $142.2\text{ s}$) while maintaining emergency delay at $\approx 16.3\text{ s}$ (within 1.2s of FixedTime), whereas `Nayak-Rescue` prioritizes emergency clearance.
 
 3. **Mamdani Fuzzy Inference Engine from Scratch**:
    - Zero external fuzzy dependencies (no scikit-fuzzy).
@@ -42,10 +44,10 @@ Nayak combines a hand-crafted **Mamdani Fuzzy Inference System (FIS)** with **NS
      2. $f_2$: 95th percentile wait time (fairness / tail delay suppression)
      3. $f_3$: Mean emergency ambulance clearance delay
    - Produces a Pareto front of specialized policy variants:
-     - **Nayak-Fast**: Lowest average delay ($-79\%$ vs Fixed-Time in rush hour).
-     - **Nayak-Fair**: Maximum equity across directions.
-     - **Nayak-Rescue**: Minimum emergency delay ($1.72\text{ s}$).
-     - **Nayak-Balanced**: Normalized knee-point compromise.
+     - **Nayak-Fast**: Lowest average delay ($-79.1\%$ wait reduction vs Fixed-Time in rush hour: $29.74\text{ s}$ vs $142.25\text{ s}$).
+     - **Nayak-Fair**: Maximum equity across directions ($-78.7\%$ wait reduction: $30.26\text{ s}$, lowest variance across approaches).
+     - **Nayak-Rescue**: Minimum emergency delay archetype during NSGA-II training ($1.72\text{ s}$ best $f_3$; lowest fuzzy emergency delay of $9.27\text{ s}$ in normal test traffic).
+     - **Nayak-Balanced**: Normalized knee-point compromise ($-78.9\%$ wait reduction: $30.04\text{ s}$, balanced trade-off across all 3 objectives).
 
 5. **Explainable AI (XAI)**:
    - Full human readability: no black-box neural networks. Rules and evolved weights can be inspected directly in readable IF-THEN format ([results/rule_report.md](results/rule_report.md)).
@@ -159,31 +161,51 @@ Evaluated over **20 held-out stochastic seeds** (seeds 1000–1019) with 3600-se
 | Controller | Non-Amb Mean Wait | 95th %tile Wait | Amb Delay | Throughput (veh) | Wilcoxon vs FixedTime |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **FixedTime(30s)** | 142.25 ± 26.72 s | 353.36 ± 55.19 s | 15.11 ± 6.03 s | 3409.4 | Baseline |
-| **LongestQueueFirst** | 623.23 ± 36.12 s | 1270.41 ± 75.79 s | **6.24 ± 2.77 s** | 2440.6 | $p < 10^{-4}$ (Worse) |
+| **LongestQueueFirst** | 623.23 ± 36.12 s | 1270.41 ± 75.79 s | **6.24 ± 2.77 s\*** | 2440.6 | $p < 10^{-4}$ (Severe Gridlock) |
 | **HandDesignedFuzzy** | 45.32 ± 1.88 s | 96.11 ± 4.45 s | 12.81 ± 7.43 s | 3561.1 | $p < 10^{-4}$ |
 | **Nayak-Fast** | **29.74 ± 3.20 s** | **66.00 ± 7.15 s** | 16.32 ± 10.91 s | 3573.4 | **$p < 10^{-5}, r = -1.0$ ($-79.1\%$)** |
-| **Nayak-Fair** | 30.26 ± 3.60 s | 66.97 ± 9.90 s | 15.05 ± 8.37 s | 3573.2 | **$p < 10^{-5}, r = -1.0$** |
-| **Nayak-Rescue** | 36.57 ± 9.15 s | 89.66 ± 34.18 s | 15.18 ± 10.16 s | 3563.8 | **$p < 10^{-4}$** |
-| **Nayak-Balanced** | **30.04 ± 3.02 s** | **66.08 ± 7.46 s** | 16.26 ± 10.48 s | **3575.7** | **$p < 10^{-5}, r = -1.0$** |
+| **Nayak-Fair** | 30.26 ± 3.60 s | 66.97 ± 9.90 s | 15.05 ± 8.37 s | 3573.2 | **$p < 10^{-5}, r = -1.0$ ($-78.7\%$)** |
+| **Nayak-Rescue** | 36.57 ± 9.15 s | 89.66 ± 34.18 s | 15.18 ± 10.16 s | 3563.8 | **$p < 10^{-4}, r = -1.0$ ($-74.3\%$)** |
+| **Nayak-Balanced** | **30.04 ± 3.02 s** | **66.08 ± 7.46 s** | 16.26 ± 10.48 s | **3575.7** | **$p < 10^{-5}, r = -1.0$ ($-78.9\%$)** |
 
 ### Normal Balanced Scenario (V/C ~ 0.65)
 | Controller | Non-Amb Mean Wait | 95th %tile Wait | Amb Delay | Throughput (veh) |
 | :--- | :---: | :---: | :---: | :---: |
 | **FixedTime(30s)** | 18.51 ± 0.83 s | 40.65 ± 1.31 s | 15.08 ± 6.04 s | 2515.6 |
-| **LongestQueueFirst** | 146.60 ± 37.27 s | 329.99 ± 78.09 s | **7.13 ± 2.36 s** | 2340.2 |
+| **LongestQueueFirst** | 146.60 ± 37.27 s | 329.99 ± 78.09 s | **7.13 ± 2.36 s\*** | 2340.2 |
 | **HandDesignedFuzzy** | 43.87 ± 2.27 s | 103.32 ± 5.86 s | 11.68 ± 9.11 s | 2497.9 |
 | **Nayak-Fast** | **15.08 ± 0.73 s** | **34.35 ± 1.79 s** | 9.65 ± 4.74 s | 2515.8 |
+| **Nayak-Fair** | 15.32 ± 0.76 s | 34.70 ± 1.84 s | 9.82 ± 5.43 s | 2516.1 |
+| **Nayak-Rescue** | 15.97 ± 0.78 s | 35.48 ± 1.89 s | **9.27 ± 5.43 s** | 2516.5 |
 | **Nayak-Balanced** | 15.45 ± 0.68 s | 34.75 ± 1.68 s | 10.16 ± 5.64 s | 2516.2 |
 
-*Takeaway*: `Nayak-Fast` and `Nayak-Balanced` achieve the lowest delay in **all three scenarios**, beating `FixedTime` by **79.1% in rush hour** and by **18.5% in balanced traffic**, while increasing total throughput.
-
----
-
-## Ablation Findings
-
-1. **Evolution Components (Ablation A)**: Evolving both membership function shapes and rule weights jointly outperforms optimizing either component in isolation ($30.04\text{ s}$ vs $33.6\text{ s}$ and $36.2\text{ s}$ in rush hour).
-2. **PCU Modeling vs Raw Counts (Ablation B)**: Accounting for Passenger Car Units allows the controller to recognize that bus blockages require extended discharge windows, whereas raw counts prematurely truncate green phases behind heavy vehicles.
-3. **Emergency Priority (Ablation C)**: Activating emergency rules drops ambulance delay by **89%** ($1.72\text{ s}$ vs $16.3\text{ s}$) at a cost of only $+0.8\text{ s}$ in general traffic delay.
+> ### Critical Metric Analysis & Viva Defense Notes
+> 
+> 1. **Individual Wait-Time Cuts**:
+>    - `Nayak-Fast`: **$79.1\%$ cut** in rush hour ($29.74\text{ s}$ vs $142.25\text{ s}$, $p < 10^{-5}$).
+>    - `Nayak-Balanced`: **$78.9\%$ cut** in rush hour ($30.04\text{ s}$ vs $142.25\text{ s}$, $p < 10^{-5}$) and **$16.5\%$ cut** in normal traffic ($15.45\text{ s}$ vs $18.51\text{ s}$).
+>    - `Nayak-Fair`: **$78.7\%$ cut** in rush hour ($30.26\text{ s}$) with minimal variance across approaches.
+>    - `Nayak-Rescue`: **$74.3\%$ cut** in rush hour ($36.57\text{ s}$) while maintaining emergency prioritization.
+> 
+> 2. **Why LongestQueueFirst Appears Best in Ambulance Delay ($6.24\text{ s}$ - The Chattering Trap)**:
+>    - LongestQueueFirst possesses **zero emergency awareness**. Its apparent $6.24\text{ s}$ delay is an actuation artifact of catastrophic phase chattering: switching rapidly on small margin differences causes lost clearance time ($4\text{ s}$ clearance $+ 2\text{ s}$ startup lost) to destroy effective capacity.
+>    - Consequently, general traffic wait explodes to **$623.23\text{ s}$ (over 10 minutes)** and throughput collapses by $>1000$ vehicles. While ambulances filtering to the front happen to catch a frequent phase transition, the entire intersection suffers complete gridlock.
+> 
+> 3. **Rush-Hour Ambulance Delay as an Authentic Pareto Trade-Off**:
+>    - In off-peak conditions (`normal` and `two_wheeler_heavy`), all Nayak variants cut ambulance delay by **$30\%\text{ to }38\%$** relative to FixedTime ($9.27\text{ s}$ vs $15.08\text{ s}$ in normal; $9.21\text{ s}$ vs $15.14\text{ s}$ in two-wheeler heavy).
+>    - In severe tidal rush hour (V/C = 0.92, 1.5:1 ratio), `Nayak-Fast` and `Nayak-Balanced` prioritize discharging heavy arterial queues to prevent gridlock, holding green phases to maximize flow. This saves **over 112 seconds per vehicle** for general traffic, incurring a modest trade-off of $\approx +1.2\text{ s}$ in ambulance delay ($16.3\text{ s}$ vs $15.1\text{ s}$ for FixedTime). `Nayak-Fair` ($15.05\text{ s}$) and `Nayak-Rescue` ($15.18\text{ s}$) match FixedTime.
+> 
+> 4. **Real Source of the $1.72\text{ s}$ Emergency Delay Figure**:
+>    - The $1.72\text{ s}$ figure was the **training Pareto minimum on objective $f_3$** achieved by `Nayak-Rescue` during the 30-generation NSGA-II optimization run across the training seeds ([results/Nayak-Rescue.json](results/Nayak-Rescue.json)). 
+>    - When evaluated across 20 held-out, unseen stochastic test seeds over 1-hour episodes, natural arrival variance yields an average ambulance clearance delay of $9.27\text{ s}$ in normal traffic and $15.18\text{ s}$ in rush hour.
+> 
+> ---
+> 
+> ## Ablation Findings
+> 
+> 1. **Evolution Components (Ablation A)**: Evolving both membership function shapes and rule weights jointly outperforms optimizing either component in isolation ($30.04\text{ s}$ vs $33.61\text{ s}$ for MFs-only and $36.21\text{ s}$ for weights-only in rush hour).
+> 2. **PCU Modeling vs Raw Counts (Ablation B)**: Accounting for Passenger Car Units allows the controller to recognize that bus blockages require extended discharge windows, whereas raw vehicle counts prematurely truncate green phases behind heavy vehicles, increasing queue tails.
+> 3. **Emergency Priority (Ablation C)**: Isolating emergency fuzzy rules (`Ambulance-Priority-ON` vs `OFF`) demonstrates that active emergency rules preserve prioritized clearance in off-peak traffic ($7.80\text{ s}$ vs $8.35\text{ s}$ in two-wheeler heavy, $10.35\text{ s}$ vs $10.73\text{ s}$ in normal) with no penalty to general vehicle delay ($15.09\text{ s}$ vs $15.09\text{ s}$).
 
 ---
 
