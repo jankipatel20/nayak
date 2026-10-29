@@ -7,7 +7,7 @@ import os
 import pickle
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Sequence
 import numpy as np
 
 # Ensure nayak package is importable
